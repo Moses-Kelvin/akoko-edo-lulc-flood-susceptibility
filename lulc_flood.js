@@ -1,402 +1,433 @@
-
-# Land Use/Land Cover Mapping and Flood Susceptibility Assessment in Akoko Edo, Nigeria
-
-## Project Overview
-
-This project presents a Google Earth Engine (GEE)-based assessment of land use/land cover (LULC) and flood susceptibility in Akoko Edo Local Government Area, Edo State, Nigeria.
-
-The study combines Sentinel-2 multispectral imagery, spectral indices, digital elevation data and terrain analysis to examine land cover characteristics and their relationship with potential flood susceptibility.
-
-Land use/land cover classification was performed using the Classification and Regression Trees (CART) algorithm. The resulting classification was subsequently integrated with elevation, slope and the Topographic Wetness Index (TWI) through a weighted-overlay approach to generate a Flood Susceptibility Index (FSI).
-
-A sensitivity analysis was also conducted using an alternative weighting scheme to examine changes in the spatial distribution of susceptibility classes.
-
-## Study Area
-
-The study covers Akoko Edo Local Government Area in Edo State, southern Nigeria. The analysis focuses on the spatial distribution of land cover classes, terrain characteristics and areas with varying levels of potential flood susceptibility.
-
-## Data Sources
-
-The analysis incorporated the following satellite and geospatial datasets:
-
-| Dataset | Source | Application |
-|---|---|---|
-| Sentinel-2 Surface Reflectance Harmonized | Copernicus | Land cover classification and spectral index generation |
-| SRTM Digital Elevation Model | USGS | Elevation and slope derivation |
-| Google Earth Engine | Google | Cloud-based geospatial processing and analysis |
-
-### Satellite Image Acquisition
-
-Sentinel-2 Surface Reflectance Harmonized imagery was obtained from the COPERNICUS/S2_SR_HARMONIZED collection.
-
-The image collection was filtered using the following parameters:
-
-- **Acquisition period:** 1 January 2024 – 31 December 2025.
-- **Cloud cover threshold:** Less than 5%.
-- **Cloud masking:** QA60 cloud and cirrus bit masking.
-- **Composite generation:** Median compositing.
-- **Spatial resolution:** 10 m for the principal Sentinel-2 bands used in the analysis.
-
-A true-colour composite was generated using the red, green and blue bands.
-
-## Methodology
-
-The workflow consisted of satellite image preprocessing, spectral index generation, land cover classification, terrain analysis, flood susceptibility modelling and sensitivity analysis.
-
-### 1. Sentinel-2 Image Preprocessing
-
-Sentinel-2 imagery was filtered by the study area, acquisition period and cloud-cover percentage.
-
-Cloud and cirrus contamination were reduced using the QA60 quality assessment band. The resulting image collection was composited using the median reducer and clipped to the study area boundary.
-
-The composite provided the spectral information required for land cover classification and index calculation.
-
-### 2. Spectral Indices
-
-Five spectral indices were generated to support the analysis of vegetation, built-up surfaces, water and exposed soil characteristics.
-
-**Normalized Difference Vegetation Index (NDVI)**
-
-Used to examine vegetation distribution and condition.
-
-\[
-NDVI = \frac{NIR-RED}{NIR+RED}
-\]
-
-**Enhanced Vegetation Index (EVI)**
-
-Used to improve vegetation assessment through additional atmospheric and background correction terms.
-
-\[
-EVI = 2.5\left(
-\frac{NIR-RED}{NIR+6RED-7.5BLUE+1}
-\right)
-\]
-
-**Normalized Difference Built-up Index (NDBI)**
-
-Used to identify built-up surfaces.
-
-\[
-NDBI = \frac{SWIR-NIR}{SWIR+NIR}
-\]
-
-**Modified Normalized Difference Water Index (MNDWI)**
-
-Used to enhance the identification of surface water features.
-
-\[
-MNDWI = \frac{GREEN-SWIR}{GREEN+SWIR}
-\]
-
-**Bare Soil Index (BSI)**
-
-Used to distinguish exposed soil and sparsely vegetated surfaces.
-
-\[
-BSI =
-\frac{(SWIR+RED)-(NIR+BLUE)}
-{(SWIR+RED)+(NIR+BLUE)}
-\]
-
-These indices were combined with selected Sentinel-2 spectral bands to construct the classification feature stack.
-
-### 3. Land Use/Land Cover Classification
-
-Five land cover categories were considered:
-
-| Class Code | Land Cover Category |
-|---|---|
-| 0 | Forest |
-| 1 | Agriculture |
-| 2 | Built-up |
-| 3 | Water |
-| 4 | Barren Land |
-
-Training samples were created by merging the digitised class-specific training polygons. The classification was performed using the CART classifier implemented through the Google Earth Engine Smile CART algorithm.
-
-Independent validation polygons were subsequently sampled from the Sentinel-2 feature stack and used to evaluate the classification.
-
-The classification performance was assessed using a confusion matrix, overall accuracy, Kappa coefficient, producer's accuracy and user's accuracy.
-
-#### Classification Accuracy
-
-| Evaluation Metric | Result |
-|---|---:|
-| Overall Accuracy | 84.41% |
-| Kappa Coefficient | 0.788 |
-
-The results indicate reasonable agreement between the classified land cover and the independent validation observations.
-
-### 4. Terrain Analysis and Topographic Wetness Index
-
-The SRTM Digital Elevation Model was used to derive elevation and slope.
-
-Slope was calculated using the terrain analysis function in Google Earth Engine.
-
-The Topographic Wetness Index was derived using the following expression:
-
-\[
-TWI = \ln\left(\frac{FlowAccumulation}
-{\tan(\beta)+0.001}\right)
-\]
-
-Where:
-
-- Flow Accumulation represents the neighbourhood-based elevation sum calculated in the script.
-- \(\beta\) represents slope angle converted from degrees to radians.
-- 0.001 is a small constant introduced to prevent division by zero.
-
-The resulting TWI values ranged approximately from 4.97 to 13.32.
-
-### 5. Flood Susceptibility Index Modelling
-
-Flood susceptibility was assessed using a weighted-overlay approach involving four conditioning factors:
-
-- Land use/land cover
-- Slope
-- Elevation
-- Topographic Wetness Index
-
-Each conditioning factor was reclassified into five ordinal scores, with higher scores representing greater susceptibility according to the adopted scoring scheme.
-
-The land cover classification was reclassified using the following mapping:
-
-| Original Class | Reclassified Score |
-|---|---:|
-| Forest | 1 |
-| Agriculture | 3 |
-| Built-up | 5 |
-| Water | 5 |
-| Barren Land | 4 |
-
-Slope, elevation and TWI were also reclassified using threshold-based scoring.
-
-The Flood Susceptibility Index was calculated using the following weighted linear combination:
-
-\[
-FSI = 0.35(LC) + 0.25(Slope)
-+ 0.25(TWI) + 0.15(Elevation)
-\]
-
-Where:
-
-- LC represents the reclassified land cover score.
-- Slope represents the reclassified slope score.
-- TWI represents the reclassified wetness index score.
-- Elevation represents the reclassified elevation score.
-
-The resulting FSI values ranged from 1 to 5.
-
-#### Flood Susceptibility Classification
-
-The continuous FSI was divided into five susceptibility categories:
-
-| FSI Range | Susceptibility Category |
-|---|---|
-| Up to 2.0 | Very Low |
-| 2.0–2.5 | Low |
-| 2.5–3.0 | Moderate |
-| 3.0–3.5 | High |
-| Above 3.5 | Very High |
-
-The classified output provides a spatial representation of relative flood susceptibility across the study area.
-
-### 6. Sensitivity Analysis
-
-A sensitivity analysis was conducted to examine how alternative weighting assignments influenced the resulting flood susceptibility distribution.
-
-The original weighting scheme was:
-
-| Conditioning Factor | Original Weight |
-|---|---:|
-| Land Use/Land Cover | 0.35 |
-| Slope | 0.25 |
-| TWI | 0.25 |
-| Elevation | 0.15 |
-
-An alternative weighting scheme was subsequently applied:
-
-| Conditioning Factor | Alternative Weight |
-|---|---:|
-| Land Use/Land Cover | 0.30 |
-| Slope | 0.30 |
-| TWI | 0.25 |
-| Elevation | 0.15 |
-
-The alternative FSI was calculated as:
-
-\[
-FSI_{sens} = 0.30(LC) + 0.30(Slope)
-+ 0.25(TWI) + 0.15(Elevation)
-\]
-
-Both susceptibility surfaces were classified using the same thresholds. Their corresponding area distributions were calculated to examine the changes resulting from the alternative weighting scheme.
-
-## Results
-
-### 1. Land Use/Land Cover Area Distribution
-
-The calculated land cover areas are presented below.
-
-| Land Cover Class | Area (ha) |
-|---|---:|
-| Forest | 64,414.84 |
-| Agriculture | 53,424.49 |
-| Built-up | 3,621.10 |
-| Water | 1,128.16 |
-| Barren Land | 14,036.23 |
-| **Total** | **136,624.81** |
-
-Forest and agricultural land constituted the largest mapped land cover categories.
-
-### 2. Flood Susceptibility Area Distribution
-
-The area statistics obtained from the original FSI classification are presented below.
-
-| Susceptibility Category | Area (ha) |
-|---|---:|
-| Very Low | 6,168.25 |
-| Low | 24,814.07 |
-| Moderate | 39,999.27 |
-| High | 29,179.84 |
-| Very High | 36,381.56 |
-| **Total** | **136,542.99** |
-
-The results show the spatial distribution of the five susceptibility categories across the study area.
-
-### 3. Sensitivity Analysis Results
-
-The alternative weighting scheme produced the following susceptibility area distribution.
-
-| Susceptibility Category | Original Weighting (ha) | Alternative Weighting (ha) |
-|---|---:|---:|
-| Very Low | 6,168.25 | 6,001.06 |
-| Low | 24,814.07 | 16,291.06 |
-| Moderate | 39,999.27 | 27,636.75 |
-| High | 29,179.84 | 40,647.83 |
-| Very High | 36,381.56 | 45,966.30 |
-
-The alternative weighting scheme increased the mapped areas classified as high and very high susceptibility, while reducing the areas classified as low and moderate susceptibility.
-
-This demonstrates that the distribution of susceptibility classes is influenced by the relative importance assigned to the conditioning factors.
-
-## Visual Results
-
-The repository contains the following maps, charts and spatial outputs generated during the analysis.
-
-### Sentinel-2 Composite and Land Cover Classification
-
-**Sentinel-2 True Colour Composite**
-
-![Sentinel-2 Composite](images/composite.png)
-
-**Land Use/Land Cover Map**
-
-![LULC](images/LULC.png)
-
-### Spectral Indices
-
-**Normalized Difference Vegetation Index (NDVI)**
-
-![NDVI](images/NDVI.png)
-
-**Normalized Difference Built-up Index (NDBI)**
-
-![NDBI](images/NDBI.png)
-
-**Bare Soil Index (BSI)**
-
-![BSI](images/BSI.png)
-
-### Terrain Characteristics
-
-**Elevation**
-
-![Elevation](images/Elevation.jpg)
-
-**Slope**
-
-![Slope](images/Slope.jpg)
-
-**Topographic Wetness Index**
-
-![TWI](images/TWI.jpg)
-
-### Flood Susceptibility Assessment
-
-**Flood Susceptibility Index**
-
-![FSI](images/FSI.jpg)
-
-**Flood Susceptibility Area Distribution**
-
-![Flood Area Distribution](images/flood_area_distribution.png)
-
-### Land Cover Statistics
-
-**Land Use/Land Cover Area Distribution**
-
-![LULC Area Distribution](images/lulc_area_distribution.png)
-
-### Sensitivity Analysis
-
-**Flood Susceptibility Area Under Alternative Weighting Schemes**
-
-![Sensitivity Analysis](images/sensitivity_flood_area.png)
-
-**Percentage Change in Susceptibility Classes**
-
-![Percentage Change](images/percentage_change.png)
-
-## Limitations
-
-The analysis has several limitations that should be considered when interpreting the results.
-
-The Sentinel-2 composite was generated using imagery acquired between January 2024 and December 2025. Consequently, the resulting land cover classification represents a multi-period composite rather than a strictly single-year 2024 observation. Although cloud filtering and QA60 masking were applied, residual atmospheric effects and cloud contamination may still influence the spectral information.
-
-The CART classification achieved an overall accuracy of 84.41% and a Kappa coefficient of 0.788. However, classification errors remain across individual land cover categories and may affect the subsequent susceptibility assessment.
-
-The flood susceptibility index was developed using a weighted-overlay approach. The assigned weights and reclassification thresholds involve judgement and may influence the resulting spatial distribution of susceptibility classes.
-
-Flow accumulation was approximated using a neighbourhood-based summation of the elevation model rather than a hydrologically derived flow accumulation dataset. Consequently, the derived TWI should be interpreted as an approximate terrain wetness indicator rather than a conventional hydrological TWI.
-
-The sensitivity analysis examined the effect of modifying the relative weights assigned to the conditioning factors. However, it does not independently establish the predictive accuracy of the susceptibility map.
-
-Furthermore, the susceptibility assessment was not validated against an independent historical flood inventory. The resulting map therefore represents relative susceptibility based on the selected environmental variables and weighting assumptions, rather than measured flood probability, inundation depth or real-time flood conditions.
-
-## Tools and Technologies
-
-The project was implemented using the following tools and datasets:
-
-- **Google Earth Engine:** Satellite image processing and geospatial analysis.
-- **JavaScript:** Development of the remote sensing and modelling workflow.
-- **Sentinel-2:** Multispectral imagery and spectral index generation.
-- **SRTM DEM:** Terrain analysis and elevation modelling.
-- **CART:** Supervised land cover classification.
-- **GIS and Multi-Criteria Evaluation:** Weighted-overlay flood susceptibility assessment.
-
-## Reproducibility
-
-The Google Earth Engine JavaScript script contains the processing workflow for satellite image acquisition, cloud masking, spectral index generation, land cover classification, terrain analysis, flood susceptibility modelling, sensitivity analysis and export of the resulting spatial datasets.
-
-To reproduce the analysis:
-
-1. Open the Google Earth Engine Code Editor.
-2. Import or define the study area boundary as `roi`.
-3. Import the training polygons: `forest`, `agriculture`, `builtup`, `water` and `barren`.
-4. Import the corresponding independent validation polygons.
-5. Copy the JavaScript script into the Code Editor.
-6. Run the script and inspect the generated map layers and console outputs.
-7. Execute the export tasks to save the resulting datasets to Google Drive.
-
-The analysis relies on publicly accessible satellite and geospatial datasets, together with the digitised training and validation polygons.
-
-## Author
-
-**Kelvin Akhere Moses**
-
-B.Sc. Surveying and Geo-Informatics (First Class Honours)  
-University of Benin, Nigeria
-
-[LinkedIn](https://www.linkedin.com/in/kelvin-moses-90538023a/) | [Personal Portfolio](https://kelvinmoses.me)
+ 
+Map.centerObject(roi, 10);
+Map.addLayer(roi, {}, 'Akoko Edo Boundary');
+
+// Load Sentinel-2 Surface Reflectance
+var s2 = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+  .filterBounds(roi)
+  .filterDate('2024-01-01', '2025-12-31')
+  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 5));
+
+// Cloud masking function
+function maskS2Clouds(image) {
+  var qa = image.select('QA60');
+  var cloudBitMask = 1 << 10;
+  var cirrusBitMask = 1 << 11;
+
+  var mask = qa.bitwiseAnd(cloudBitMask).eq(0)
+      .and(qa.bitwiseAnd(cirrusBitMask).eq(0));
+
+  return image.updateMask(mask)
+              .divide(10000)
+              .copyProperties(image, ["system:time_start"]);
+}
+
+var s2Masked = s2.map(maskS2Clouds);
+
+var composite = s2Masked.median().clip(roi);
+
+Map.addLayer(composite, 
+  {bands: ['B4','B3','B2'], min:0, max:0.3}, 
+  'True Color Composite');
+
+// Load SRTM DEM
+var dem = ee.Image("USGS/SRTMGL1_003").clip(roi);
+// Map.addLayer(dem, {min:100, max:600}, 'Elevation');
+
+var slope = ee.Terrain.slope(dem);
+// Map.addLayer(slope, {min:0, max:40}, 'Slope');
+
+var ndvi = composite.normalizedDifference(['B8','B4'])
+  .rename('NDVI');
+
+var evi = composite.expression(
+  '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))',
+  {
+    'NIR': composite.select('B8'),
+    'RED': composite.select('B4'),
+    'BLUE': composite.select('B2')
+  }).rename('EVI');
+
+var ndbi = composite.normalizedDifference(['B11','B8'])
+  .rename('NDBI');
+
+var mndwi = composite.normalizedDifference(['B3','B11'])
+  .rename('MNDWI');
+
+var bsi = composite.expression(
+  '((SWIR + RED) - (NIR + BLUE)) / ((SWIR + RED) + (NIR + BLUE))',
+  {
+    'SWIR': composite.select('B11'),
+    'RED': composite.select('B4'),
+    'NIR': composite.select('B8'),
+    'BLUE': composite.select('B2')
+  }).rename('BSI');
+
+
+var featureStack = composite
+.select(['B2','B3','B4','B8','B11','B12','B5'])
+  .addBands(ndvi)
+  .addBands(evi)
+  .addBands(ndbi)
+  .addBands(mndwi)
+  .addBands(bsi);
+
+var training = forest
+  .merge(agriculture)
+  .merge(builtup)
+  .merge(water)
+  .merge(barren);
+
+var trainingData = featureStack.sampleRegions({
+  collection: training,
+  properties: ['lulc'],
+  scale: 10
+});
+
+print(trainingData.aggregate_histogram('lulc'));
+
+var classifier = ee.Classifier.smileCart().train({
+  features: trainingData,
+  classProperty: 'lulc',
+  inputProperties: featureStack.bandNames()
+});
+
+var classified = featureStack.classify(classifier);
+
+var palette = [
+  'darkgreen', // Forest
+  '7FFF00', // Agriculture
+  'red', // Built-up
+  'blue', // Water
+  'yellow'  // Barren
+];
+
+Map.addLayer(classified, {min:0, max:4, palette: palette}, 'LULC Map');
+
+Export.image.toDrive({
+  image: classified,
+  description: 'Akoko_Edo_LULC_2024',
+  scale: 10,
+  region: roi,
+  maxPixels: 1e13
+});
+
+var withRandom = trainingData.randomColumn('random');
+
+var split = 0.7;
+var trainSet = withRandom.filter(ee.Filter.lt('random', split));
+var testSet = withRandom.filter(ee.Filter.gte('random', split));
+
+var classifier70 = ee.Classifier.smileCart().train({
+  features: trainSet,
+  classProperty: 'lulc',
+  inputProperties: featureStack.bandNames()
+});
+
+var validation = forest_val
+  .merge(agriculture_val)
+  .merge(builtup_val)
+  .merge(water_val)
+  .merge(barren_val);
+  
+var validationData = featureStack.sampleRegions({
+  collection: validation,
+  properties: ['lulc'],
+  scale: 10
+});
+
+print(validationData.aggregate_histogram('lulc'));
+
+
+var validated = validationData.classify(classifier);
+
+var confusionMatrix = validated.errorMatrix('lulc', 'classification');
+
+print('Confusion Matrix:', confusionMatrix);
+print('Overall Accuracy:', confusionMatrix.accuracy());
+print('Kappa:', confusionMatrix.kappa());
+print('Producer Accuracy:', confusionMatrix.producersAccuracy());
+print('User Accuracy:', confusionMatrix.consumersAccuracy());
+
+// Flood modelling 
+var demFilled = dem.focal_mean(1);
+var slopeRad = slope.multiply(Math.PI).divide(180);
+var flowAccum = dem
+  .reduceNeighborhood({
+    reducer: ee.Reducer.sum(),
+    kernel: ee.Kernel.circle(5)
+  });
+
+var tanSlope = slopeRad.tan();
+
+// Avoid division by zero
+var twi = flowAccum
+  .divide(tanSlope.add(0.001))
+  .log()
+  .rename('TWI');
+
+Map.addLayer(twi, {min:5, max:15, palette:['yellow','orange','red','darkred']}, 'TWI');
+
+var lcReclass = classified.remap(
+  [0,1,2,3,4],
+  [1,3,5,5,4]
+).rename('LC_score');
+
+var slopeScore = slope.expression(
+  "(b <= 5) ? 5" +
+  ": (b <= 10) ? 4" +
+  ": (b <= 20) ? 3" +
+  ": (b <= 35) ? 2" +
+  ": 1", {
+    'b': slope
+}).rename('Slope_score');
+
+print(slope.reduceRegion({
+  reducer: ee.Reducer.minMax(),
+  geometry: roi,
+  scale: 30,
+  maxPixels: 1e13
+}));
+
+var elevScore = dem.expression(
+  "(b <= 227) ? 5" +
+  ": (b <= 349) ? 4" +
+  ": (b <= 471) ? 3" +
+  ": (b <= 593) ? 2" +
+  ": 1", {
+    'b': dem
+}).rename('Elev_score');
+
+print(dem.reduceRegion({
+  reducer: ee.Reducer.minMax(),
+  geometry: roi,
+  scale: 30,
+  maxPixels: 1e13
+}));
+
+
+var twiScore = twi.expression(
+  "(b <= 6.64) ? 1" +
+  ": (b <= 8.31) ? 2" +
+  ": (b <= 9.98) ? 3" +
+  ": (b <= 11.65) ? 4" +
+  ": 5", {
+    'b': twi
+}).rename('TWI_score');
+
+print(twi.reduceRegion({
+  reducer: ee.Reducer.minMax(),
+  geometry: roi,
+  scale: 30,
+  maxPixels: 1e13
+}));
+
+
+var fsi = lcReclass.multiply(0.35)
+  .add(slopeScore.multiply(0.25))
+  .add(twiScore.multiply(0.25))
+  .add(elevScore.multiply(0.15))
+  .rename('FSI');
+ 
+print(fsi.reduceRegion({
+  reducer: ee.Reducer.minMax(),
+  geometry: roi,
+  scale: 30,
+  maxPixels: 1e13
+}));
+
+Map.addLayer(fsi, {
+  min:1,
+  max:5,
+  palette:['green','yellow','orange','red','darkred']
+}, 'Flood Susceptibility Index');
+
+var fsiClass = fsi.expression(
+  "(b <= 2) ? 1" +
+  ": (b <= 2.5) ? 2" +
+  ": (b <= 3) ? 3" +
+  ": (b <= 3.5) ? 4" +
+  ": 5", {
+    'b': fsi
+}).rename('FSI_class');
+
+Map.addLayer(fsiClass.clip(roi), {
+  min:1,
+  max:5,
+  palette:['green','yellow','orange','red','darkred']
+}, 'Flood Susceptibility Classes');
+
+
+// Calculate area of each LULC class (in hectares)
+var areaImage = ee.Image.pixelArea().divide(10000);
+
+var lulcArea = areaImage.addBands(classified)
+  .reduceRegion({
+    reducer: ee.Reducer.sum().group({
+      groupField: 1,
+      groupName: 'class'
+    }),
+    geometry: roi,
+    scale: 10,
+    maxPixels: 1e13
+  });
+
+print('LULC Area Statistics (ha):', lulcArea);
+
+var fsiArea = areaImage.addBands(fsiClass)
+  .reduceRegion({
+    reducer: ee.Reducer.sum().group({
+      groupField: 1,
+      groupName: 'class'
+    }),
+    geometry: roi,
+    scale: 30,
+    maxPixels: 1e13
+  });
+
+print('Flood Susceptibility Area (ha):', fsiArea);
+
+// sensitivity test
+// =============================
+// Sensitivity Analysis Version
+// =============================
+
+// Recalculate FSI with adjusted weights
+var fsi_sens = lcReclass.multiply(0.30)
+  .add(slopeScore.multiply(0.30))
+  .add(twiScore.multiply(0.25))
+  .add(elevScore.multiply(0.15))
+  .rename('FSI_sensitivity');
+
+// Check min and max
+print('FSI Sensitivity Min/Max:', fsi_sens.reduceRegion({
+  reducer: ee.Reducer.minMax(),
+  geometry: roi,
+  scale: 30,
+  maxPixels: 1e13
+}));
+
+// Reclassify into 5 classes (same thresholds)
+var fsiClass_sens = fsi_sens.expression(
+  "(b <= 2) ? 1" +
+  ": (b <= 2.5) ? 2" +
+  ": (b <= 3) ? 3" +
+  ": (b <= 3.5) ? 4" +
+  ": 5", {
+    'b': fsi_sens
+}).rename('FSI_class_sensitivity');
+
+// Add to map
+Map.addLayer(fsiClass_sens.clip(roi), {
+  min: 1,
+  max: 5,
+  palette: ['green','yellow','orange','red','darkred']
+}, 'FSI Sensitivity Classes');
+
+// Calculate area statistics
+var areaImage = ee.Image.pixelArea().divide(10000);
+
+var fsiSensArea = areaImage.addBands(fsiClass_sens)
+  .reduceRegion({
+    reducer: ee.Reducer.sum().group({
+      groupField: 1,
+      groupName: 'class'
+    }),
+    geometry: roi,
+    scale: 30,
+    maxPixels: 1e13
+  });
+
+print('Flood Susceptibility Area (Sensitivity Test) (ha):', fsiSensArea);
+
+Export.image.toDrive({
+  image: classified.clip(roi),
+  description: 'Akoko_Edo_LULC_2024_UTM',
+  scale: 10,
+  region: roi,
+  crs: 'EPSG:32631',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: fsiClass.clip(roi),
+  description: 'Akoko_Edo_FSI_Classes_UTM',
+  scale: 30,
+  region: roi,
+  crs: 'EPSG:32631',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: fsi.clip(roi),
+  description: 'Akoko_Edo_FSI_Continuous_UTM',
+  scale: 30,
+  region: roi,
+  crs: 'EPSG:32631',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: twi.clip(roi),
+  description: 'Akoko_Edo_TWI_UTM',
+  scale: 30,
+  region: roi,
+  crs: 'EPSG:32631',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: slope.clip(roi),
+  description: 'Akoko_Edo_Slope_UTM',
+  scale: 30,
+  region: roi,
+  crs: 'EPSG:32631',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: ndvi.clip(roi),
+  description: 'Akoko_Edo_NDVI_UTM',
+  scale: 10,
+  region: roi,
+  crs: 'EPSG:32631',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: ndbi.clip(roi),
+  description: 'Akoko_Edo_NDBI_UTM',
+  scale: 10,
+  region: roi,
+  crs: 'EPSG:32631',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: bsi.clip(roi),
+  description: 'Akoko_Edo_BSI_UTM',
+  scale: 10,
+  region: roi,
+  crs: 'EPSG:32631',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: composite.clip(roi),
+  description: 'Akoko_Edo_Composite_UTM',
+  scale: 10,
+  region: roi,
+  crs: 'EPSG:32631',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: dem.clip(roi),
+  description: 'Akoko_Edo_Elevation_UTM',
+  scale: 30,
+  region: roi,
+  crs: 'EPSG:32631',
+  maxPixels: 1e13
+});
+
+ 
